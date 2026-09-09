@@ -13,61 +13,51 @@ permissions:
 
 jobs:
   release:
+    name: Build & Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up JDK 23
-        uses: actions/setup-java@v5
+      - name: Set up JDK 26
+        uses: actions/setup-java@v6
         with:
+          java-version: "26"
           distribution: temurin
-          java-version: "23"
           cache: maven
-
-      - name: Configure Maven authentication
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p ~/.m2
-
-          cat > ~/.m2/settings.xml <<'EOF'
-          <settings>
-            <servers>
-              <server>
-                <id>github</id>
-                <username>${env.GITHUB_ACTOR}</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          server-id: github
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_TOKEN
 
       - name: Build
         run: mvn -B clean package
+        env:
+          MAVEN_USERNAME: ${{ github.actor }}
+          MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find artifact
         id: artifact
         shell: bash
         run: |
-          JAR="$(find target -maxdepth 1 -type f -name '*.jar' ! -name '*original*.jar' | head -n 1)"
+          JAR="$(find target -maxdepth 1 -type f -name '*.jar' ! -name 'original-*.jar' | head -n 1)"
 
           if [ -z "$JAR" ]; then
-            echo "No JAR artifact found."
+            echo "::error::No JAR artifact found in target/"
             exit 1
           fi
 
+          echo "Found artifact: $JAR"
           echo "jar=$JAR" >> "$GITHUB_OUTPUT"
 
       - name: Rename artifact
         shell: bash
         run: |
-          cp "${{ steps.artifact.outputs.jar }}" "SmallPractice-${GITHUB_REF_NAME#v}.jar"
+          cp "${{ steps.artifact.outputs.jar }}" \
+             "SmallPractice-${GITHUB_REF_NAME#v}.jar"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: SmallPractice ${{ github.ref_name }}
