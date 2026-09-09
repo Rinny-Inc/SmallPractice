@@ -9,6 +9,13 @@
   <version>1.0-SNAPSHOT</version>
   <name>SmallPractice</name>
 
+  <repositories>
+      <repository>
+          <id>github</id>
+          <url>https://maven.pkg.github.com/Rinny-Inc/CompressedPaper</url>
+      </repository>
+  </repositories>
+
     <dependencies>
         <dependency>
             <groupId>org.github.paperspigot</groupId>
